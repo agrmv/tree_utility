@@ -24,19 +24,18 @@ func dirSort(dir []os.FileInfo) {
 }
 
 func isIgnore(info os.FileInfo) bool {
-	if info.Name() != ".git" && info.Name() != ".idea" {
+	if info.Name() != ".git" && info.Name() != ".idea" && info.Name() != "README.md" {
 		return true
 	}
 	return false
 }
 
-func dirTree(out io.Writer, path string, printFiles bool) (err error) {
-
+func readDir(path string) (err error, files []os.FileInfo) {
 	file, err := os.Open(path)
 
 	//Readdir считывает содержимое каталога, связанного с файлом, и возвращает фрагмент до n значений
 	//Если n <= 0, Readdir возвращает все FileInfo из каталога
-	dir, err := file.Readdir(0)
+	files, err = file.Readdir(0)
 
 	// Просто file.Close () может вернуть ошибку, но мы не будем об этом знать
 	defer func() {
@@ -45,16 +44,22 @@ func dirTree(out io.Writer, path string, printFiles bool) (err error) {
 		}
 	}()
 
-	dirSort(dir)
+	return err, files
+}
+
+func dirTree(out io.Writer, path string, printFiles bool) (err error) {
+	_, files := readDir(path)
+
+	dirSort(files)
 
 	var graphicsSymbol strings.Builder
 	for range strings.Split(path, "/") {
 		graphicsSymbol.WriteString(tab)
 	}
 
-	for _, info := range dir {
+	for _, info := range files {
 		if info.IsDir() && isIgnore(info) {
-			fmt.Println(graphicsSymbol.String(), info.Name())
+			fmt.Fprintf(out, "%s%s\n", graphicsSymbol.String(), info.Name())
 			err = dirTree(out, filepath.Join(path, info.Name()), printFiles)
 		}
 	}
