@@ -2,11 +2,19 @@ package main
 
 import (
 	"fmt"
-	_ "io"
+	"io"
 	"os"
-	_ "path/filepath"
+	"path/filepath"
 	"sort"
-	_ "strings"
+	"strings"
+)
+
+const (
+	newLine      = "\n"
+	tab          = "\t"
+	middleItem   = "├── "
+	continueItem = "│   "
+	lastItem     = "└── "
 )
 
 func dirSort(dir []os.FileInfo) {
@@ -15,7 +23,14 @@ func dirSort(dir []os.FileInfo) {
 	})
 }
 
-func dirTree(out interface{}, path string, printFiles bool) (err error) {
+func isIgnore(info os.FileInfo) bool {
+	if info.Name() != ".git" && info.Name() != ".idea" {
+		return true
+	}
+	return false
+}
+
+func dirTree(out io.Writer, path string, printFiles bool) (err error) {
 
 	file, err := os.Open(path)
 
@@ -32,8 +47,16 @@ func dirTree(out interface{}, path string, printFiles bool) (err error) {
 
 	dirSort(dir)
 
+	var graphicsSymbol strings.Builder
+	for range strings.Split(path, "/") {
+		graphicsSymbol.WriteString(tab)
+	}
+
 	for _, info := range dir {
-		fmt.Println(info.Name())
+		if info.IsDir() && isIgnore(info) {
+			fmt.Println(graphicsSymbol.String(), info.Name())
+			err = dirTree(out, filepath.Join(path, info.Name()), printFiles)
+		}
 	}
 
 	return err
