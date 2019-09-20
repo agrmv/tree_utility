@@ -48,19 +48,19 @@ func readDir(path string) (err error, files []os.FileInfo) {
 }
 
 func dirTree(out io.Writer, path string, printFiles bool) (err error) {
-	_, files := readDir(path)
-
-	dirSort(files)
+	_, dir := readDir(path)
+	dirSort(dir)
 
 	var graphicsSymbol strings.Builder
 	for range strings.Split(path, "/") {
 		graphicsSymbol.WriteString(tab)
 	}
 
-	for _, info := range files {
-		if info.IsDir() && isIgnore(info) {
-			fmt.Fprintf(out, "%s%s\n", graphicsSymbol.String(), info.Name())
-			err = dirTree(out, filepath.Join(path, info.Name()), printFiles)
+	//Доделать форматирование вывода и вынести в отдельную функцию
+	for _, node := range dir {
+		if node.IsDir() && isIgnore(node) {
+			fmt.Fprintf(out, "%s%s\n", graphicsSymbol.String(), node.Name())
+			err = dirTree(out, filepath.Join(path, node.Name()), printFiles)
 		}
 	}
 
