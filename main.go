@@ -2,11 +2,33 @@ package main
 
 import (
 	"fmt"
-	"io"
+	_ "io"
 	"os"
-	"path/filepath"
-	"strings"
+	_ "path/filepath"
+	_ "strings"
 )
+
+func dirTree(out interface{}, path string, printFiles bool) (err error) {
+
+	file, err := os.Open(path)
+
+	//Readdir считывает содержимое каталога, связанного с файлом, и возвращает фрагмент до n значений
+	//Если n <= 0, Readdir возвращает все FileInfo из каталога
+	dir, err := file.Readdir(0)
+
+	// Просто file.Close () может вернуть ошибку, но мы не будем об этом знать
+	defer func() {
+		if fileErr := file.Close(); fileErr != nil {
+			err = fileErr
+		}
+	}()
+
+	for _, info := range dir {
+		fmt.Println(info.Name())
+	}
+
+	return err
+}
 
 func main() {
 	out := os.Stdout
