@@ -5,8 +5,15 @@ import (
 	_ "io"
 	"os"
 	_ "path/filepath"
+	"sort"
 	_ "strings"
 )
+
+func dirSort(dir []os.FileInfo) {
+	sort.SliceStable(dir, func(i, j int) bool {
+		return dir[i].Name() < dir[j].Name()
+	})
+}
 
 func dirTree(out interface{}, path string, printFiles bool) (err error) {
 
@@ -22,6 +29,8 @@ func dirTree(out interface{}, path string, printFiles bool) (err error) {
 			err = fileErr
 		}
 	}()
+
+	dirSort(dir)
 
 	for _, info := range dir {
 		fmt.Println(info.Name())
