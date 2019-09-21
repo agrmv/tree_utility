@@ -11,9 +11,9 @@ import (
 
 const (
 	tab          = "\t"
-	middleItem   = "├── "
-	continueItem = "│   "
-	lastItem     = "└── "
+	middleItem   = "├───"
+	continueItem = "│"
+	lastItem     = "└───"
 )
 
 func dirSort(dir []os.FileInfo) {
@@ -51,29 +51,29 @@ func readDir(path string) (err error, files []os.FileInfo) {
 	return err, files
 }
 
-func printDir(out io.Writer, path string, printFiles bool, levelItem string) error {
+func printDir(out io.Writer, path string, printFiles bool, graphicsSymbol string) error {
 
 	err, files := readDir(path)
 
 	for i, file := range files {
 		isLastElement := i == getLastElementIndex(files, !printFiles)
-		graphicsSymbol, nestedLevelItem := getGraphicsSymbol(levelItem, isLastElement)
+		prefix, nestedLevelItem := getGraphicsSymbol(graphicsSymbol, isLastElement)
 
 		if file.IsDir() && isIgnore(file) {
-			fmt.Println(levelItem+graphicsSymbol, file.Name())
+			fmt.Fprintf(out, "%s%s\n", graphicsSymbol+prefix, file.Name())
 			err = printDir(out, filepath.Join(path, file.Name()), printFiles, nestedLevelItem)
 		} else if printFiles && isIgnore(file) {
-			fmt.Println(levelItem+graphicsSymbol, getFileInfo(file))
+			fmt.Fprintf(out, "%s%s\n", graphicsSymbol+prefix, getFileInfo(file))
 		}
 
 	}
 	return err
 }
 
-func getLastElementIndex(files []os.FileInfo, onlyDir bool) int {
+func getLastElementIndex(files []os.FileInfo, printFiles bool) int {
 	lastIndex := len(files) - 1
 
-	if onlyDir {
+	if printFiles {
 		for i := lastIndex; i >= 0; i-- {
 			if files[i].IsDir() {
 				return i
