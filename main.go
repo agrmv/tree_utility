@@ -6,11 +6,10 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
-	"strings"
+	"strconv"
 )
 
 const (
-	newLine      = "\n"
 	tab          = "\t"
 	middleItem   = "├── "
 	continueItem = "│   "
@@ -24,20 +23,25 @@ func dirSort(dir []os.FileInfo) {
 }
 
 func isIgnore(info os.FileInfo) bool {
-	if info.Name() != ".git" && info.Name() != ".idea" && info.Name() != "README.md" {
+	if info.Name() != ".git" && info.Name() != ".idea" && info.Name() != "README.md" && info.Name() != "dockerfile" {
 		return true
 	}
 	return false
 }
 
+func getFileInfo(file os.FileInfo) string {
+	if file.Size() == 0 {
+		return file.Name() + " (empty)"
+	}
+	return file.Name() + " (" + strconv.FormatInt(file.Size(), 10) + "b)"
+}
+
 func readDir(path string) (err error, files []os.FileInfo) {
 	file, err := os.Open(path)
 
-	//Readdir считывает содержимое каталога, связанного с файлом, и возвращает фрагмент до n значений
-	//Если n <= 0, Readdir возвращает все FileInfo из каталога
-	files, err = file.Readdir(0)
+	files, err = file.Readdir(-1)
+	dirSort(files)
 
-	// Просто file.Close () может вернуть ошибку, но мы не будем об этом знать
 	defer func() {
 		if fileErr := file.Close(); fileErr != nil {
 			err = fileErr
@@ -47,23 +51,57 @@ func readDir(path string) (err error, files []os.FileInfo) {
 	return err, files
 }
 
-func dirTree(out io.Writer, path string, printFiles bool) (err error) {
-	_, dir := readDir(path)
-	dirSort(dir)
+func printDir(out io.Writer, path string, printFiles bool, levelItem string) error {
 
-	var graphicsSymbol strings.Builder
-	for range strings.Split(path, "/") {
-		graphicsSymbol.WriteString(tab)
+	err, files := readDir(path)
+
+	for i, file := range files {
+		isLastElement := i == getLastElementIndex(files, !printFiles)
+		graphicsSymbol, nestedLevelItem := getGraphicsSymbol(levelItem, isLastElement)
+
+		if file.IsDir() && isIgnore(file) {
+			fmt.Println(levelItem+graphicsSymbol, file.Name())
+			err = printDir(out, filepath.Join(path, file.Name()), printFiles, nestedLevelItem)
+		} else if printFiles && isIgnore(file) {
+			fmt.Println(levelItem+graphicsSymbol, getFileInfo(file))
+		}
+
 	}
+	return err
+}
 
-	//Доделать форматирование вывода и вынести в отдельную функцию
-	for _, node := range dir {
-		if node.IsDir() && isIgnore(node) {
-			fmt.Fprintf(out, "%s%s\n", graphicsSymbol.String(), node.Name())
-			err = dirTree(out, filepath.Join(path, node.Name()), printFiles)
+func getLastElementIndex(files []os.FileInfo, onlyDir bool) int {
+	lastIndex := len(files) - 1
+
+	if onlyDir {
+		for i := lastIndex; i >= 0; i-- {
+			if files[i].IsDir() {
+				return i
+			}
 		}
 	}
 
+	return lastIndex
+}
+
+func getGraphicsSymbol(levelItem string, isLastElement bool) (string, string) {
+	var graphicsSymbol string
+	var nestedLevelItem string
+
+	if isLastElement {
+		graphicsSymbol = lastItem
+		nestedLevelItem = levelItem + tab
+	} else {
+		graphicsSymbol = middleItem
+		nestedLevelItem = levelItem + continueItem + tab
+	}
+
+	return graphicsSymbol, nestedLevelItem
+
+}
+
+func dirTree(out io.Writer, path string, printFiles bool) (err error) {
+	err = printDir(out, path, printFiles, "")
 	return err
 }
 
