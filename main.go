@@ -34,11 +34,11 @@ func dirSort(dir []os.FileInfo) {
 	})
 }
 
-func isIgnore(info os.FileInfo) bool { //switch case?
+func isIgnore(info os.FileInfo) bool {
 	if info.Name() != ".git" && info.Name() != ".idea" && info.Name() != "README.md" && info.Name() != "dockerfile" {
-		return true
+		return false
 	}
-	return false
+	return true
 }
 
 func readDir(path string) (error, []os.FileInfo) {
@@ -93,7 +93,7 @@ func printDirTree(out io.Writer, path string, printFiles bool, graphicsSymbol st
 	for i, info := range dir {
 		isLastElement := i == getLastElementIndex(dir, printFiles)
 		prefix, nestedLevelGraphicsSymbol := getGraphicsSymbol(graphicsSymbol, isLastElement)
-		if isIgnore(info) {
+		if !isIgnore(info) {
 			if info.IsDir() {
 				fmt.Fprintf(out, "%s%s\n", graphicsSymbol+prefix, info.Name())
 				err = printDirTree(out, filepath.Join(path, info.Name()), printFiles, nestedLevelGraphicsSymbol)
