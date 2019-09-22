@@ -41,10 +41,10 @@ func isIgnore(info os.FileInfo) bool { //switch case?
 	return false
 }
 
-func readDir(path string) (err error, files []os.FileInfo) {
+func readDir(path string) (error, []os.FileInfo) {
 	file, err := os.Open(path)
 
-	files, err = file.Readdir(-1)
+	dir, err := file.Readdir(-1)
 
 	defer func() {
 		if fileErr := file.Close(); fileErr != nil {
@@ -52,7 +52,7 @@ func readDir(path string) (err error, files []os.FileInfo) {
 		}
 	}()
 
-	return err, files
+	return err, dir
 }
 
 func getLastElementIndex(files []os.FileInfo, printFiles bool) int {
@@ -83,23 +83,23 @@ func getGraphicsSymbol(graphicsSymbol string, isLastElement bool) (string, strin
 	}
 
 	return prefix, nestedLevelGraphicsSymbol
-
 }
 
 func printDirTree(out io.Writer, path string, printFiles bool, graphicsSymbol string) error {
 
-	err, files := readDir(path)
-	dirSort(files)
+	err, dir := readDir(path)
+	dirSort(dir)
 
-	for i, info := range files {
-		isLastElement := i == getLastElementIndex(files, printFiles)
+	for i, info := range dir {
+		isLastElement := i == getLastElementIndex(dir, printFiles)
 		prefix, nestedLevelGraphicsSymbol := getGraphicsSymbol(graphicsSymbol, isLastElement)
-
-		if info.IsDir() && isIgnore(info) {
-			fmt.Fprintf(out, "%s%s\n", graphicsSymbol+prefix, info.Name())
-			err = printDirTree(out, filepath.Join(path, info.Name()), printFiles, nestedLevelGraphicsSymbol)
-		} else if printFiles && isIgnore(info) {
-			fmt.Fprintf(out, "%s%s\n", graphicsSymbol+prefix, File{info.Name(), info.Size()})
+		if isIgnore(info) {
+			if info.IsDir() {
+				fmt.Fprintf(out, "%s%s\n", graphicsSymbol+prefix, info.Name())
+				err = printDirTree(out, filepath.Join(path, info.Name()), printFiles, nestedLevelGraphicsSymbol)
+			} else if printFiles {
+				fmt.Fprintf(out, "%s%s\n", graphicsSymbol+prefix, File{info.Name(), info.Size()})
+			}
 		}
 
 	}
